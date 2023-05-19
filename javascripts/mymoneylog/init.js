@@ -7,15 +7,30 @@ var CLIENT_ID = '3pboozvdveqjvwq';
 var TOKEN_ID = 'mymoneylog-dropbox-auth';
 
 var init = {
+    getAccessTokenFromUrl: function () {
+        return utils.parseQueryString(window.location.hash).access_token;
+    },
+    isAuthenticated: function () {
+        return !!init.getAccessTokenFromUrl();
+    },
     loadData: function() {
         mlog.translator.translateDocument();
-        notification.events.init();
-        client = new Dropbox({
-            clientId: CLIENT_ID,
-            accessToken: users.getAccessToken(),
-        });
+        notification.events.init();        
+        // client = new Dropbox({
+        //     clientId: CLIENT_ID,
+        //     accessToken: users.getAccessToken(),
+        // });
 
-        users.init();
+        if (init.isAuthenticated()) {
+            client = new Dropbox.Dropbox({ accessToken: init.getAccessTokenFromUrl() });
+            users.init();
+        } else {
+            client = new Dropbox.Dropbox({ clientId: CLIENT_ID });
+            var authUrl = client.auth.getAuthenticationUrl(window.location.origin + '/')
+                .then((authUrl) => {
+                    window.location = authUrl;
+                })
+        }
     },
     init: function() {
         /* initialize and show entries */

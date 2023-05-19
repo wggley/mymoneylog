@@ -22,7 +22,7 @@ mlog.base = function() {
             autorename: false
         }).then(function(FilesFileMetadata) {
             mlog.base.success(callback, undefined, 'data saved succesfully!');
-            console.log("File saved as revision " + FilesFileMetadata.rev);
+            console.log("File saved as revision " + FilesFileMetadata.result.rev);
         }).catch(mlog.base.catchError);
         return true;
     };
@@ -78,7 +78,7 @@ mlog.base = function() {
                 path: '/' + mlog.base.dataFileName
             }).then(function(data) {
                 mlog.base.hideLoading();
-                var blob = data.fileBlob;
+                var blob = data.result.fileBlob;
                 var reader = new FileReader();
                 reader.addEventListener("loadend", function() {
                     //console.log(reader.result); // will print out file content
