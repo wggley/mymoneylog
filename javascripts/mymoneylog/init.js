@@ -26,7 +26,7 @@ var init = {
             users.init();
         } else {
             client = new Dropbox.Dropbox({ clientId: CLIENT_ID });
-            var authUrl = client.auth.getAuthenticationUrl(window.location.origin + '/')
+            var authUrl = client.auth.getAuthenticationUrl(window.location.origin + window.location.pathname)
                 .then((authUrl) => {
                     window.location = authUrl;
                 })
