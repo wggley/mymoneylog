@@ -2,9 +2,10 @@
  * init.js - initialize and start myMoneyLog
  * @author Ricardo Nishimura - 2008
  */
-var client;
+var client, dbxAuth;
 var CLIENT_ID = '3pboozvdveqjvwq';
 var TOKEN_ID = 'mymoneylog-dropbox-auth';
+var REDIRECT_URI = window.location.origin + window.location.pathname;
 
 var init = {
     getAccessTokenFromUrl: function () {
@@ -13,7 +14,16 @@ var init = {
     isAuthenticated: function () {
         return !!init.getAccessTokenFromUrl();
     },
-    loadData: function() {
+    getCodeFromUrl: function() {
+        return utils.parseQueryString(window.location.search).code;
+    },
+     hasRedirectedFromAuth: function() {
+        return !!init.getCodeFromUrl();
+    },
+    loadData: function () {
+        dbxAuth = new Dropbox.DropboxAuth({
+            clientId: CLIENT_ID
+        });
         mlog.translator.translateDocument();
         notification.events.init();        
         // client = new Dropbox({
@@ -21,14 +31,26 @@ var init = {
         //     accessToken: users.getAccessToken(),
         // });
 
-        if (init.isAuthenticated()) {
-            client = new Dropbox.Dropbox({ accessToken: init.getAccessTokenFromUrl() });
-            users.init();
+        if (init.hasRedirectedFromAuth()) {
+            dbxAuth.setCodeVerifier(window.sessionStorage.getItem('codeVerifier'));
+            dbxAuth.getAccessTokenFromCode(REDIRECT_URI, init.getCodeFromUrl())
+            .then((response) => {
+                dbxAuth.setAccessToken(response.result.access_token);
+                dbxAuth.setRefreshToken(response.result.refresh_token);
+                client = new Dropbox.Dropbox({
+                    auth: dbxAuth
+                });
+                users.init();
+            }).catch((error) => {
+                window.location.href = REDIRECT_URI;
+            })
+            
         } else {
-            client = new Dropbox.Dropbox({ clientId: CLIENT_ID });
-            var authUrl = client.auth.getAuthenticationUrl(window.location.origin + window.location.pathname)
-                .then((authUrl) => {
-                    window.location = authUrl;
+            dbxAuth.getAuthenticationUrl(REDIRECT_URI, undefined, 'code', 'offline', undefined, undefined, true)
+                .then(authUrl => {
+                    window.sessionStorage.clear();
+                    window.sessionStorage.setItem("codeVerifier", dbxAuth.codeVerifier);
+                    window.location.href = authUrl;
                 })
         }
     },
